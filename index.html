@@ -1,0 +1,742 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0e1a; font-family: system-ui, -apple-system, sans-serif; color: #e0e0e0; min-height: 100vh; }
+
+.header { text-align: center; padding: 32px 20px 16px; }
+.header h1 { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.header h1 span { color: #ff9900; }
+.header p { color: #8899aa; font-size: 13px; margin-top: 5px; }
+.header .author { color: #ff9900; font-size: 12px; margin-top: 4px; }
+
+/* Main navigation radios */
+input[name="main"] { display: none; }
+input[name="fc-sub"] { display: none; }
+
+.nav { display: flex; justify-content: center; gap: 8px; padding: 0 20px; margin-bottom: 24px; flex-wrap: wrap; }
+.nav label { padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: 1px solid #2a3040; background: #141824; color: #ccc; }
+.nav label:hover { border-color: #ff9900; color: #fff; }
+
+#nav-overview:checked ~ .nav label[for="nav-overview"],
+#nav-fc:checked ~ .nav label[for="nav-fc"],
+#nav-fm:checked ~ .nav label[for="nav-fm"],
+#nav-mm:checked ~ .nav label[for="nav-mm"],
+#nav-lm:checked ~ .nav label[for="nav-lm"] {
+  background: #ff9900; color: #000; border-color: #ff9900;
+}
+
+/* FC sub-nav */
+.fc-subnav { display: none; justify-content: center; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+#nav-fc:checked ~ .fc-subnav { display: flex; }
+.fc-subnav label { padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #2a3a50; background: #0d1520; color: #8899aa; transition: all 0.2s; }
+.fc-subnav label:hover { border-color: #64b5f6; color: #fff; }
+#fc-inbound:checked ~ .fc-subnav label[for="fc-inbound"],
+#fc-outbound:checked ~ .fc-subnav label[for="fc-outbound"],
+#fc-relo:checked ~ .fc-subnav label[for="fc-relo"] {
+  background: #1a3a5a; color: #64b5f6; border-color: #64b5f6;
+}
+
+/* Pages */
+.page { display: none; padding: 0 20px 40px; max-width: 1100px; margin: 0 auto; }
+#nav-overview:checked ~ .page-overview { display: block; }
+#nav-fc:checked ~ .page-fc { display: block; }
+#nav-fm:checked ~ .page-fm { display: block; }
+#nav-mm:checked ~ .page-mm { display: block; }
+#nav-lm:checked ~ .page-lm { display: block; }
+
+/* FC sub-pages */
+.fc-subpage { display: none; }
+#nav-fc:checked ~ .page-fc #fc-inbound:checked ~ .fc-sub-inbound,
+.page-fc .fc-sub-inbound { display: none; }
+
+/* We need a different approach for nested navigation */
+#fc-inbound:checked ~ .page-fc .fc-sub-inbound { display: block; }
+#fc-inbound:checked ~ .page-fc .fc-sub-outbound { display: none; }
+#fc-inbound:checked ~ .page-fc .fc-sub-relo { display: none; }
+#fc-outbound:checked ~ .page-fc .fc-sub-inbound { display: none; }
+#fc-outbound:checked ~ .page-fc .fc-sub-outbound { display: block; }
+#fc-outbound:checked ~ .page-fc .fc-sub-relo { display: none; }
+#fc-relo:checked ~ .page-fc .fc-sub-inbound { display: none; }
+#fc-relo:checked ~ .page-fc .fc-sub-outbound { display: none; }
+#fc-relo:checked ~ .page-fc .fc-sub-relo { display: block; }
+
+/* Cards & Layout */
+.section-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #ff9900; }
+.section-subtitle { font-size: 14px; color: #8899aa; margin-bottom: 20px; }
+.facility-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.card { background: #141824; border: 1px solid #2a3040; border-radius: 10px; padding: 18px; transition: border-color 0.2s; }
+.card:hover { border-color: #ff9900; }
+.card h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+.card .subtitle { font-size: 11px; color: #ff9900; margin-bottom: 10px; font-weight: 500; }
+.card p, .card li { font-size: 12px; color: #aab; line-height: 1.6; }
+.card ul { list-style: none; padding-left: 0; }
+.card ul li::before { content: '→ '; color: #ff9900; }
+
+/* Network Flow */
+.network-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 20px 0; }
+.mile-row { width: 100%; max-width: 900px; border-radius: 10px; padding: 16px 20px; }
+.mile-row h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.mile-row .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 8px 12px; font-size: 11px; }
+.chip .code { font-weight: 700; color: #fff; font-size: 13px; }
+.chip .desc { color: #8899aa; font-size: 10px; margin-top: 2px; }
+
+.bg-fc { background: linear-gradient(135deg, #1a1e32 0%, #0d1028 100%); border: 1px solid #3a3080; }
+.bg-fm { background: linear-gradient(135deg, #1a2332 0%, #0d1a2d 100%); border: 1px solid #1e4d7b; }
+.bg-mm { background: linear-gradient(135deg, #1f2416 0%, #1a2a0d 100%); border: 1px solid #3d6b1e; }
+.bg-lm { background: linear-gradient(135deg, #2a1f16 0%, #2d1a0d 100%); border: 1px solid #7b4d1e; }
+
+.flow-arrow { width: 2px; height: 24px; background: linear-gradient(to bottom, #ff9900, rgba(255,153,0,0.3)); position: relative; }
+.flow-arrow::after { content: '▼'; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); color: #ff9900; font-size: 9px; }
+
+/* Separate sections */
+.separate-section { margin-top: 24px; padding: 16px; background: #141824; border: 1px solid #2a3040; border-radius: 10px; }
+.separate-section h4 { font-size: 14px; color: #fff; font-weight: 700; margin-bottom: 6px; }
+.separate-section p { font-size: 12px; color: #8899aa; line-height: 1.5; }
+
+/* Process Steps */
+.process-steps { margin: 16px 0; }
+.step-block { background: #0d1520; border: 1px solid #1e3040; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+.step-block h5 { font-size: 13px; font-weight: 700; color: #64b5f6; margin-bottom: 6px; }
+.step-block p { font-size: 12px; color: #bbc; line-height: 1.6; }
+.step-number { display: inline-block; background: #ff9900; color: #000; font-size: 10px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; margin-right: 6px; }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+.data-table th { text-align: left; padding: 8px 10px; color: #ff9900; font-weight: 600; border-bottom: 1px solid #2a3040; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.data-table td { padding: 8px 10px; border-bottom: 1px solid #1a2030; color: #ccd; }
+.data-table tr:hover td { background: rgba(255,153,0,0.04); }
+
+/* Details */
+details { margin: 8px 0; }
+summary { cursor: pointer; padding: 10px 14px; background: #1a2030; border: 1px solid #2a3040; border-radius: 6px; font-size: 12px; font-weight: 600; color: #fff; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: '▸ '; color: #ff9900; }
+details[open] summary::before { content: '▾ '; }
+details[open] summary { border-radius: 6px 6px 0 0; border-bottom: none; }
+.det-content { background: #0d1520; border: 1px solid #2a3040; border-top: none; border-radius: 0 0 6px 6px; padding: 14px; }
+
+/* Tags */
+.tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.tag-high { background: #3b1111; color: #ff6b6b; }
+.tag-med { background: #3b2e11; color: #ffb84d; }
+.tag-low { background: #112b11; color: #6bff6b; }
+
+/* Flow line */
+.flow-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 12px 0; }
+.flow-item { background: #1a2a3a; border: 1px solid #2a4a6a; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #64b5f6; font-weight: 500; }
+.flow-sep { color: #ff9900; font-size: 12px; }
+
+@media (max-width: 768px) {
+  .facility-grid { grid-template-columns: 1fr; }
+  .nav label { padding: 8px 12px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card, .step-block { animation: fadeUp 0.35s ease-out both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Amazon</span> Egypt Operations Network</h1>
+  <p>Interactive Explorer • FC & 3 Miles • End-to-End Visibility</p>
+  <p class="author">Mohamed Sewilam • Operations Integration Engineer • June 2026</p>
+</div>
+
+<!-- Main Navigation -->
+<input type="radio" name="main" id="nav-overview" checked>
+<input type="radio" name="main" id="nav-fc">
+<input type="radio" name="main" id="nav-fm">
+<input type="radio" name="main" id="nav-mm">
+<input type="radio" name="main" id="nav-lm">
+
+<!-- FC Sub Navigation -->
+<input type="radio" name="fc-sub" id="fc-inbound" checked>
+<input type="radio" name="fc-sub" id="fc-outbound">
+<input type="radio" name="fc-sub" id="fc-relo">
+
+<div class="nav">
+  <label for="nav-overview">🗺️ Network Overview</label>
+  <label for="nav-fc">🏭 FC</label>
+  <label for="nav-fm">📦 First Mile</label>
+  <label for="nav-mm">🔄 Middle Mile</label>
+  <label for="nav-lm">🚚 Last Mile</label>
+</div>
+
+<div class="fc-subnav">
+  <label for="fc-inbound">Inbound</label>
+  <label for="fc-outbound">Outbound</label>
+  <label for="fc-relo">ReLo</label>
+</div>
+
+<!-- ===== NETWORK OVERVIEW ===== -->
+<div class="page page-overview">
+  <h2 class="section-title">Network Overview</h2>
+  <p class="section-subtitle">End-to-end flow: FC & First Mile → Middle Mile (Sorting) → Last Mile (Delivery to Customer)</p>
+
+  <div class="network-diagram">
+    <div class="mile-row bg-fc">
+      <h3 style="color:#a0a0ff">⬡ Fulfillment Center (FC)</h3>
+      <div class="chips">
+        <div class="chip"><div class="code">CAI6</div><div class="desc">Fulfillment Center — Inbound, Outbound, ICQA</div></div>
+        <div class="chip"><div class="code">SPX5</div><div class="desc">FC / ReLo — CRET & First Mile Ops</div></div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="mile-row bg-fm">
+      <h3 style="color:#64b5f6">📦 First Mile (Inventory)</h3>
+      <div class="chips">
+        <div class="chip"><div class="code">DEG1</div><div class="desc">First Mile Hub — Seller pickup & inbound</div></div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="mile-row bg-mm">
+      <h3 style="color:#81c784">🔄 Middle Mile (Sorting)</h3>
+      <div class="chips">
+        <div class="chip"><div class="code">Sorting Centers</div><div class="desc">Central sorting & reverse logistics hubs</div></div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="mile-row bg-lm">
+      <h3 style="color:#ffb74d">🚚 Last Mile (Delivery Stations)</h3>
+      <div class="chips">
+        <div class="chip"><div class="code">DAI4</div><div class="desc">East Cairo</div></div>
+        <div class="chip"><div class="code">DAI3</div><div class="desc">Delivery Station</div></div>
+        <div class="chip"><div class="code">DXA5</div><div class="desc">Delivery Station</div></div>
+        <div class="chip"><div class="code">DTT4</div><div class="desc">Delivery Station</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HCD3 & SPX9 Separate -->
+  <div class="separate-section">
+    <h4>🏪 HCD3 — Amazon Now (Dark Stores)</h4>
+    <p>Ultra-fast delivery ecosystem achieving 13–17 minutes from order to doorstep. Operates through dark stores (400–500 sqm, 8 associates/shift) fed by the Regional Distribution Center, using a pick-to-ship model with no separate packing step.</p>
+  </div>
+  <div class="separate-section" style="margin-top:10px">
+    <h4>📦 SPX9 — Storage Distribution Center (SDC)</h4>
+    <p>External storage backbone for Fulfillment Centers handling items with vendor lead times exceeding 21 days. Feeds replenishment inventory to HCD3 dark stores and CAI6 on a scheduled, forecast-driven cadence.</p>
+  </div>
+</div>
+
+<!-- ===== FC PAGE ===== -->
+<div class="page page-fc">
+
+  <!-- FC INBOUND -->
+  <div class="fc-sub-inbound">
+    <h2 class="section-title">FC — Inbound Operations</h2>
+    <p class="section-subtitle">The 3-step inbound sequence: Dock → Receive → Stow. Each item progresses through defined system states before becoming available for picking.</p>
+
+    <div class="process-steps">
+      <div class="step-block">
+        <h5><span class="step-number">1</span> DOCK</h5>
+        <p>The dock is the entry point for all vendor and supplier shipments. The associate opens <strong>Dock Master</strong> to monitor shipment status through defined stages: <em>Scheduled → Arrived → Closed</em>.</p>
+        <p style="margin-top:8px"><strong>Gate Check-In:</strong> Truck arrives at facility gate, shipment verified for timeliness. Late arrivals flagged and held pending dock availability.</p>
+        <p style="margin-top:8px"><strong>Yard & Dock Assignment:</strong> Trailer assigned a yard spot, directed to dock entrance. TDR (Trailer Door Release) must be set before any unloading begins.</p>
+        <p style="margin-top:8px"><strong>Unloading:</strong> Dock ambassador counts and scans every item (ASIN/barcode). System accepts shortages but does NOT receive excess quantities. Shipments arrive as pallets or cartons.</p>
+        <p style="margin-top:8px"><strong>Confirmation:</strong> Vendor receives signed/stamped document. Shipment marked as closed in Dock Master and moved to <strong>NYR</strong> (Not Yet Received) storage.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">2</span> RECEIVE</h5>
+        <p>Items are formally inducted into the FC's inventory system. Associate determines <strong>receive type</strong>: Each | Prep | Case | Pallet.</p>
+        <p style="margin-top:8px"><strong>Product Scanning:</strong> Associate scans product code (ASIN/barcode) to verify physical item matches system specs. System validates dimensions, weight, and specifications in real time.</p>
+        <p style="margin-top:8px"><strong>Expiry Check:</strong> For applicable categories (groceries, cosmetics), expiry dates verified. Items without visible expiry are escalated to Problem Solve team for assessment.</p>
+        <p style="margin-top:8px"><strong>Trolley Placement:</strong> Successfully scanned items placed on designated trolley. Status changes to <strong>NYS</strong> (Not Yet Stowed) — received and awaiting placement.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">3</span> STOW</h5>
+        <p>The final inbound stage — items physically placed into designated storage locations.</p>
+        <p style="margin-top:8px"><strong>Setup:</strong> Associate scans drop zone → trolley to confirm assigned items.</p>
+        <p style="margin-top:8px"><strong>Location Selection:</strong> System recommends storage location based on item height and weight. Associate scans location barcode to confirm before placement.</p>
+        <p style="margin-top:8px"><strong>Rules Enforced:</strong></p>
+        <p style="margin-left:12px">• <strong>BOAATS Rule</strong> — bin organization, orientation, and placement compliance</p>
+        <p style="margin-left:12px">• <strong>ASIN Limits Per Shelf</strong> — maximum ASINs per bin to prevent overcrowding</p>
+        <p style="margin-top:8px"><strong>Reactive Stowing:</strong> Special priority mode for transshipments from SPX5 — items destined for active orders are stowed first for immediate picking.</p>
+        <p style="margin-top:8px"><strong>Completion:</strong> Item status updates to <em>Available</em> — live and pickable for outbound orders.</p>
+      </div>
+    </div>
+
+    <details>
+      <summary>Inbound Support Functions</summary>
+      <div class="det-content">
+        <table class="data-table">
+          <tr><th>Function</th><th>Role</th></tr>
+          <tr><td>ISS Team</td><td>Raise tickets to RBS, bin checks, MFI (Missing From Inventory) investigations</td></tr>
+          <tr><td>Problem Solve</td><td>Resolve receiving/stowing issues, expiry escalations, discrepancy handling</td></tr>
+          <tr><td>Cubiscan</td><td>Determines item dimensions for optimal stowing and packing</td></tr>
+          <tr><td>ICQA</td><td>Cycle counts, bin checks, inventory accuracy audits (SBC, Cycle Count, SRC)</td></tr>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <!-- FC OUTBOUND -->
+  <div class="fc-sub-outbound">
+    <h2 class="section-title">FC — Outbound Operations</h2>
+    <p class="section-subtitle">The 5-step outbound sequence: Pick → Wrangle → Sort → Pack → Dock. Orders move from storage to customer shipment.</p>
+
+    <div class="process-steps">
+      <div class="step-block">
+        <h5><span class="step-number">1</span> PICK</h5>
+        <p>Associate logs in and is assigned a <strong>picking path/batch</strong>. System groups orders to minimize walking distance.</p>
+        <p style="margin-top:8px"><strong>Process:</strong> System directs to exact storage location → associate scans location barcode → picks required quantity → scans item (ASIN/barcode) to validate → places into assigned tote/cart.</p>
+        <p style="margin-top:8px"><strong>Handoff:</strong> Completed totes sent via conveyor to Wrangle.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">2</span> WRANGLE</h5>
+        <p>Receiving and organization stage for picked totes arriving from the pick floor.</p>
+        <p style="margin-top:8px"><strong>Process:</strong> Totes arrive via conveyor → each tote scanned to confirm identity → placed into assigned space grouped by batch. Acts as a buffer and consolidation checkpoint between Pick and Sort.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">3</span> SORT</h5>
+        <p>Items from multi-item orders organized by customer order using a <strong>rebin grid</strong>.</p>
+        <p style="margin-top:8px"><strong>Process:</strong> Associate prepares rebin (size based on batch) → scans each tote → system assigns items to specific rebin slots by order → items physically placed into slots until all are sorted.</p>
+        <p style="margin-top:8px"><strong>Result:</strong> Each rebin slot contains all items for one customer order — consolidated and ready for packing.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">4</span> PACK</h5>
+        <p>Consolidated orders placed into final packaging for shipment.</p>
+        <p style="margin-top:8px"><strong>Process:</strong> Associate scans zone and rebin → scans each item → system suggests optimal packaging type (box sizes, poly bags, padded envelopes) → items packed and sealed.</p>
+        <p style="margin-top:8px"><strong>SLAM Stage:</strong> Package passes through Scan, Label, Apply, Manifest — system generates shipping label, applies it, and adds to outbound manifest.</p>
+      </div>
+
+      <div class="step-block">
+        <h5><span class="step-number">5</span> DOCK (Outbound)</h5>
+        <p>Final stage — packed shipments loaded onto trucks for dispatch.</p>
+        <p style="margin-top:8px"><strong>Pallet Building:</strong> Associates stack packages efficiently, maximizing density while maintaining stability. Experience critical for spatial optimization.</p>
+        <p style="margin-top:8px"><strong>Securing:</strong> Pallets wrapped with shrink wrap (required compliance step before loading).</p>
+        <p style="margin-top:8px"><strong>Dispatch:</strong> Correct pallets loaded onto correct trucks aligned with routing destinations. Manifest closed, truck sealed, departure recorded.</p>
+      </div>
+    </div>
+
+    <details>
+      <summary>Outbound Support Functions</summary>
+      <div class="det-content">
+        <table class="data-table">
+          <tr><th>Function</th><th>Role</th></tr>
+          <tr><td>Kick Out</td><td>Resolves weight mismatches, hazmat flags, cancelled orders; updates item weight in system</td></tr>
+          <tr><td>Problem Solve</td><td>Processes overages, damaged shipments, dwelling shipments; updates system records</td></tr>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <!-- FC ReLo -->
+  <div class="fc-sub-relo">
+    <h2 class="section-title">FC — ReLo (Returns & Logistics)</h2>
+    <p class="section-subtitle">CRET manages customer returns. VRET manages vendor returns. Together they handle all reverse inventory flows at the FC level.</p>
+
+    <h3 style="color:#fff; font-size:15px; margin:20px 0 12px; padding-left:4px; border-left: 3px solid #ff9900;">CRET — Customer Returns Excellence Team</h3>
+    <p style="font-size:12px; color:#aab; margin-bottom:16px;">Handles all aspects of returned inventory — from problem resolution and quality auditing to item restoration and technical assessment.</p>
+
+    <details open>
+      <summary>Problem Solve Tasks</summary>
+      <div class="det-content">
+        <p style="font-size:12px; color:#8899aa; margin-bottom:10px;">Addresses discrepancies in returned items — mismatches, damaged/missing items are identified, investigated, and resolved.</p>
+        <table class="data-table">
+          <tr><th>Task</th><th>Description</th></tr>
+          <tr><td><strong>Switcheroo</strong></td><td>Handles cases where the wrong item was returned — returned unit doesn't match original order. Associates investigate and resolve the discrepancy.</td></tr>
+          <tr><td><strong>Advance</strong></td><td>Coordination layer between Switcheroo and Customer Service (CS). Determines appropriate customer concessions when a return mismatch is identified.</td></tr>
+          <tr><td><strong>MDR</strong></td><td>Missing / Damaged Return — empty package (flyer) received with no item inside, or item differs from product described on return shipment. Escalated through MDR workflow.</td></tr>
+        </table>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Operational Support Tasks</summary>
+      <div class="det-content">
+        <p style="font-size:12px; color:#8899aa; margin-bottom:10px;">Ensures inventory accuracy, item restoration, and quality control throughout returns processing.</p>
+        <table class="data-table">
+          <tr><th>Task</th><th>Description</th></tr>
+          <tr><td><strong>Audit</strong></td><td>Quality assurance — verifies physical item matches product description on site. Item-level checks confirm accuracy before any disposition path.</td></tr>
+          <tr><td><strong>ISS</strong></td><td>Issue Support: raises tickets to RBS team to trigger bin checks on inbound inventory, verifying inventory against system records at bin level.</td></tr>
+          <tr><td><strong>Warehouse</strong></td><td>Repairs returned item status — repackages with new packaging and lists at discounted price, restoring to sellable as "used" or "discounted" listing.</td></tr>
+          <tr><td><strong>Refurbish</strong></td><td>Fixes physically damaged packaging/presentation to restore item to fully sellable state at original price. No discount applied.</td></tr>
+          <tr><td><strong>Technical Team Check</strong></td><td>Dedicated technical team tests returned electronics — determines fully functional, partially functional, or non-functional. Results inform disposition (restock, discount, refurbish, or remove).</td></tr>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>CRET Disposition Decision Flow</summary>
+      <div class="det-content">
+        <div class="flow-line">
+          <span class="flow-item">1. Audit confirms identity</span>
+          <span class="flow-sep">→</span>
+          <span class="flow-item">2. Problem Solve resolves discrepancies</span>
+          <span class="flow-sep">→</span>
+          <span class="flow-item">3. Route to disposition</span>
+        </div>
+        <p style="font-size:12px; color:#aab; margin-top:10px;"><strong>Disposition routes:</strong> Warehouse (discounted resale) | Refurbish (full-price restoration) | Technical Check (electronics testing) | Remove from inventory</p>
+        <p style="font-size:12px; color:#8899aa; margin-top:6px;">ISS supports inventory integrity throughout via RBS bin checks.</p>
+      </div>
+    </details>
+
+    <h3 style="color:#fff; font-size:15px; margin:28px 0 12px; padding-left:4px; border-left: 3px solid #ff9900;">VRET — Vendor Returns</h3>
+    <p style="font-size:12px; color:#aab; margin-bottom:16px;">Manages the return of unhealthy, unsellable, or excess inventory back to vendors or through liquidation/destruction channels.</p>
+
+    <div class="step-block">
+      <h5>How VRET Works</h5>
+      <p>The FC system identifies unhealthy inventory on a daily basis — items that are damaged, expired, recalled, or flagged by quality processes. These items are pulled from sellable inventory and routed through the V-Ret process.</p>
+      <p style="margin-top:8px"><strong>Process Flow:</strong></p>
+      <div class="flow-line" style="margin-top:6px">
+        <span class="flow-item">Identify Unhealthy Inventory</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Pick</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Sort / Rebin</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Pack</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Route to Destination</span>
+      </div>
+      <p style="margin-top:10px"><strong>Destinations:</strong></p>
+      <p style="margin-left:12px; margin-top:4px">• <strong>Vendor Return</strong> — items sent back to original vendor per agreement</p>
+      <p style="margin-left:12px">• <strong>Liquidation</strong> — sold through secondary channels at reduced price</p>
+      <p style="margin-left:12px">• <strong>Donate</strong> — eligible items donated to partner organizations</p>
+      <p style="margin-left:12px">• <strong>Destroy</strong> — items that cannot be resold, donated, or returned</p>
+      <p style="margin-top:10px"><strong>Key Notes:</strong> Hot picks are NOT generated for FRACS items. LTL (Less Than Truckload) shipments skip the rebin stage and go directly to pack.</p>
+    </div>
+
+    <details>
+      <summary>Systems Used for V-Rets</summary>
+      <div class="det-content">
+        <div class="flow-line">
+          <span class="flow-item">RODEO</span>
+          <span class="flow-item">FC Research</span>
+          <span class="flow-item">POPS</span>
+          <span class="flow-item">SPPR</span>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ===== FIRST MILE PAGE ===== -->
+<div class="page page-fm">
+  <h2 class="section-title">First Mile — Operations</h2>
+  <p class="section-subtitle">Where seller and vendor shipments first enter the Amazon network. Manages inbound, same-day operations, and return-to-seller flows.</p>
+
+  <details open>
+    <summary>Shift Structure</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>Shift</th><th>Key Operations</th></tr>
+        <tr><td><strong>Night Shift</strong></td><td>Dock operations, unwrap palettes, sort shipments onto palettes by seller location</td></tr>
+        <tr><td><strong>Morning Shift</strong></td><td>Induct shipments, assign routes to Delivery Associates (DAs), manage same-day operations. Uses 6 of 35 vehicles for vendor pickups (8:00–11:00 AM window)</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Forward Process — Shipment Flow</summary>
+    <div class="det-content">
+      <div class="flow-line">
+        <span class="flow-item">First Mile (FM)</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Sorting Center</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Delivery Station</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Customer</span>
+      </div>
+      <p style="margin-top:10px; font-size:12px; color:#aab;">Shipments are scanned at inbound dock, sorted by seller location, and dispatched to the Sorting Center. CPT of 14:00 must be met for same-day delivery eligibility.</p>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Reverse Process — Customer Returns</summary>
+    <div class="det-content">
+      <div class="flow-line">
+        <span class="flow-item">Customer</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Delivery Station</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">Sorting Center</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">First Mile (SPX5)</span>
+      </div>
+      <p style="margin-top:10px; font-size:12px; color:#aab;">Returns are routed through the Sorting Center (rather than direct to FM) to reduce shipping costs. All customer returns are processed at SPX5 via CRET operations.</p>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Return to Seller Process</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab; margin-bottom:10px;">Shipments prepared on palettes and manually scanned into a <strong>Quip tracker</strong> as a second verification gate for double-checking accuracy.</p>
+      <p style="font-size:12px; color:#ff6b6b;"><strong>⚠️ Pain Point:</strong> Manual scanning is time-consuming and error-prone — identified as a HIGH priority automation opportunity.</p>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Vendor Types & Return Policies</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>Type</th><th>Model</th><th>Returns?</th><th>Verification</th></tr>
+        <tr><td><strong>AFN — Seller Flex</strong></td><td>Large-volume sellers</td><td>Yes — returns to seller</td><td>POD verification</td></tr>
+        <tr><td><strong>AFN — Direct Fulfillment</strong></td><td>Amazon-managed fulfillment</td><td>No returns to seller</td><td>System-tracked</td></tr>
+        <tr><td><strong>MFN</strong></td><td>Merchant Fulfilled Network</td><td>Yes — returns to seller</td><td>OTP verification</td></tr>
+        <tr><td><strong>FBA</strong></td><td>Fulfilled by Amazon</td><td>Uses PCP program</td><td>PCP tracking</td></tr>
+      </table>
+      <p style="margin-top:8px; font-size:11px; color:#8899aa;"><strong>PCP</strong> = Partnered Carrier Program — streamlined inventory shipment process for FBA sellers.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>CRET Session at SPX5 (Customer Returns)</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab;">All customer returns processed at SPX5. Each station equipped with <strong>3 trolleys × 8 totes each</strong>, dedicated to specific item disposition types.</p>
+      <table class="data-table" style="margin-top:10px">
+        <tr><th>Disposition</th><th>Description</th></tr>
+        <tr><td>Sellable</td><td>Returned to inventory as-is</td></tr>
+        <tr><td>Warehouse Deals</td><td>Minor defects — discounted resale</td></tr>
+        <tr><td>Defective</td><td>Functionality issues</td></tr>
+        <tr><td>Damaged</td><td>Structural/packaging damage</td></tr>
+        <tr><td>Customer Damaged</td><td>Damaged by customer</td></tr>
+        <tr><td>Expired</td><td>Past use-by date</td></tr>
+        <tr><td>Unsellable</td><td>For disposal/liquidation</td></tr>
+        <tr><td>Audit</td><td>Flagged for quality re-inspection</td></tr>
+      </table>
+    </div>
+  </details>
+</div>
+
+<!-- ===== MIDDLE MILE PAGE ===== -->
+<div class="page page-mm">
+  <h2 class="section-title">Middle Mile — Sorting Center Operations</h2>
+  <p class="section-subtitle">Central sorting and reverse logistics hub for the network. Processes all inbound channels and routes to outbound destinations within a 2-hour SLA.</p>
+
+  <div class="facility-grid">
+    <div class="card">
+      <h4>Facility Profile</h4>
+      <div class="subtitle">Example: ~7,000 cubic meters capacity</div>
+      <ul>
+        <li>4 dock doors serving 9 working docks</li>
+        <li>SLA: 2 hours per shipment (receipt to outbound lane)</li>
+        <li>Dual-lane conveyor system (Flyers + Boxes)</li>
+        <li>VSM code routing with 3-5% wrong-sort tolerance</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Inbound Channels</h4>
+      <div class="subtitle">3 distinct inbound sources</div>
+      <ul>
+        <li><strong>FC:</strong> Pre-applied labels, uniform packaging — fastest channel</li>
+        <li><strong>Vendor Flex:</strong> Extra label verification needed (+15-30s/pkg)</li>
+        <li><strong>First Mile:</strong> Full intake processing (weight + dimension) — most time-intensive</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Outbound Destinations</h4>
+      <div class="subtitle">3 destination types with distinct protocols</div>
+      <ul>
+        <li><strong>Delivery Stations:</strong> Dispatched at volume threshold or CPT</li>
+        <li><strong>EDSP:</strong> Separate manifest reconciliation before handoff</li>
+        <li><strong>AMZL:</strong> Priority-sorted, tighter SLA, loaded LIFO</li>
+      </ul>
+    </div>
+  </div>
+
+  <details open>
+    <summary>Sorting Process — Conveyor System</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab; margin-bottom:12px;"><strong>Dual-Lane Design:</strong> Right lane handles <em>Flyers</em> (soft/poly-bag packages, gentle handling). Left lane handles <em>Boxes</em> (rigid cartons, physical pushers at exit points).</p>
+      <table class="data-table">
+        <tr><th>Role</th><th>Function</th><th>Key Detail</th></tr>
+        <tr><td><strong>NYR</strong></td><td>Shipments awaiting injection onto conveyor</td><td>Spikes indicate dock congestion or injector constraints</td></tr>
+        <tr><td><strong>Injector</strong></td><td>Places packages label-side-up onto belt</td><td>Paces feed based on downstream capacity; holds to prevent overflow</td></tr>
+        <tr><td><strong>Divertor</strong></td><td>Picks packages by VSM code to destination lanes</td><td>Scan-then-pick method; handheld confirms with audible signal</td></tr>
+      </table>
+      <p style="margin-top:10px; font-size:12px; color:#aab;"><strong>VSM Code System:</strong> Encodes destination lane + final delivery route. Generated upstream (FC/Vendor Flex/First Mile). Supports dynamic re-routing in real-time — instructions pushed to all active devices within seconds.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Reverse Logistics at Sorting Center</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>Return Type</th><th>Routed To</th><th>Process</th></tr>
+        <tr><td><strong>AFN Returns</strong></td><td>Fulfillment Center</td><td>Scanned, condition-checked, consolidated onto FC-bound pallets</td></tr>
+        <tr><td><strong>MFN Returns</strong></td><td>Seller</td><td>Per-seller manifest match required — most manual and time-consuming</td></tr>
+        <tr><td><strong>Direct Injection (FC)</strong></td><td>FC Staging</td><td>Arrives pre-split; bypasses standard sort via pre-assigned lane codes</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Delivery Partners</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>Partner</th><th>Type</th><th>Handoff Protocol</th></tr>
+        <tr><td>Bosta</td><td>3PL</td><td>SLA-defined zones, timeliness + confirmation</td></tr>
+        <tr><td>Aramex</td><td>3PL</td><td>Overflow capacity, electronic manifest reconciliation</td></tr>
+        <tr><td>Mylerz</td><td>3PL</td><td>Direct data feed for real-time status updates</td></tr>
+        <tr><td>EDSP</td><td>External DSP</td><td>Signed physical manifest + system confirmation</td></tr>
+        <tr><td>AMZL</td><td>Amazon Last Mile</td><td>Priority-sorted, loaded LIFO for earliest windows</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Key Performance Indicators</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>KPI</th><th>Description</th><th>Tracking</th></tr>
+        <tr><td>TPH</td><td>Throughput Per Hour — associates × hours ÷ shipments</td><td>Real-time</td></tr>
+        <tr><td>Delivery Estimation Accuracy</td><td>Country-level delivery estimation</td><td>Daily / WBR</td></tr>
+        <tr><td>Late Processing</td><td>Shipment exceeds 2-hour SLA</td><td>Shift-level</td></tr>
+        <tr><td>Late Departure</td><td>Truck departs beyond scheduled CPT</td><td>Shift-level</td></tr>
+        <tr><td>Missort Rate</td><td>Wrong destination lane (3-5% tolerance)</td><td>Per-associate</td></tr>
+        <tr><td>Failed Moves</td><td>Incorrect scan requiring manual reversal</td><td>Per-associate</td></tr>
+        <tr><td>Bad Loading</td><td>Truck loaded without proper shrink wrap</td><td>Per-truck</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Sweeper Run Protocol</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab;"><strong>Trigger:</strong> Before CPT when pallet accumulation >8 pallets OR floor lead decision.</p>
+      <p style="font-size:12px; color:#aab; margin-top:4px;"><strong>Duration:</strong> ~15-20 minutes. Systematic clearing from injection end toward outbound staging.</p>
+      <p style="font-size:12px; color:#aab; margin-top:4px;"><strong>Purpose:</strong> Non-negotiable pre-CPT checkpoint — guarantees sort floor cleared before outbound loading begins.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ===== LAST MILE PAGE ===== -->
+<div class="page page-lm">
+  <h2 class="section-title">Last Mile — Delivery Station Operations</h2>
+  <p class="section-subtitle">Where sorted shipments are received, organized by delivery route, and dispatched to Delivery Associates for final-mile delivery to customers.</p>
+
+  <details open>
+    <summary>Operational Flow — 6-Step Process</summary>
+    <div class="det-content">
+      <div class="flow-line">
+        <span class="flow-item">1. Request Routes</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">2. Palette Arrival</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">3. Palette Scan</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">4. Induction & RGU</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">5. Pick to Buffer</span>
+        <span class="flow-sep">→</span>
+        <span class="flow-item">6. Stow to Cage</span>
+      </div>
+      <table class="data-table" style="margin-top:12px">
+        <tr><th>Step</th><th>Action</th><th>Tool</th></tr>
+        <tr><td><strong>Request Routes</strong></td><td>System generates route assignments for delivery areas</td><td>Station Command Center</td></tr>
+        <tr><td><strong>Palette Arrival</strong></td><td>Palettes arrive from Sorting Center with manifest</td><td>Yard Management System</td></tr>
+        <tr><td><strong>Palette Scan</strong></td><td>Scan palette for tracking and compliance verification</td><td>Dock Gun</td></tr>
+        <tr><td><strong>Induction & RGU</strong></td><td>Apply yellow RGU (Routing Group Unit) label via Avery Gun to each shipment</td><td>Avery Gun</td></tr>
+        <tr><td><strong>Pick to Buffer</strong></td><td>Place shipments in racks organized by RGU number range</td><td>PDA Machine</td></tr>
+        <tr><td><strong>Stow to Cage</strong></td><td>Scan QR code and place in delivery cage for DA pickup</td><td>Stow Finger</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Shift Structure</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>Shift</th><th>Hours</th><th>Function</th></tr>
+        <tr><td><strong>Night</strong></td><td>03:00–08:00</td><td>Sortation of inbound shipments from sorting center</td></tr>
+        <tr><td><strong>Morning</strong></td><td>08:00–13:00</td><td>Yard organization; Cycle 2 dispatch</td></tr>
+        <tr><td><strong>Middle (RTS)</strong></td><td>11:00–16:00</td><td>Returns processing — FC & Sort Center lanes</td></tr>
+        <tr><td><strong>Afternoon</strong></td><td>15:00–20:00</td><td>Same-day dispatch, DA debrief</td></tr>
+        <tr><td><strong>Linehaul</strong></td><td>21:00–02:00</td><td>Buffer management; rejected order stowing</td></tr>
+      </table>
+      <p style="margin-top:8px; font-size:11px; color:#8899aa;">Delivery stations operate 3 same-day delivery cycles (SDA, SDB, SDC) covering multiple geographic zones.</p>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Staffing Positions — 6 Defined Roles</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>#</th><th>Position</th><th>Area</th><th>Responsibility</th></tr>
+        <tr><td>1</td><td><strong>TDR</strong></td><td>Dock/Yard</td><td>Truck Driver Receipt: verify license, footwear, vehicle seals, door inspection via YMS</td></tr>
+        <tr><td>2</td><td><strong>Water Spider</strong></td><td>Entire Station</td><td>Floater support — replenishes supplies, assists bottlenecks wherever needed</td></tr>
+        <tr><td>3</td><td><strong>Feeder/Loader</strong></td><td>Dock → Conveyor</td><td>Unloads shipments from palettes onto conveyor for processing</td></tr>
+        <tr><td>4</td><td><strong>Pusher</strong></td><td>Conveyor/Sort</td><td>Directs shipments by number range to appropriate buffer zone</td></tr>
+        <tr><td>5</td><td><strong>Pick to Buffer</strong></td><td>Sort/Racks</td><td>Places shipments in designated racks organized by RGU number range</td></tr>
+        <tr><td>6</td><td><strong>Stower</strong></td><td>Cage Area</td><td>Final step — scans QR, places in cage for DA pickup. Inductor failures cascade to stower DPMO.</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Linehaul Receiving — TDR Process</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab;">Critical tasks performed when a linehaul truck arrives from the sorting center:</p>
+      <table class="data-table" style="margin-top:8px">
+        <tr><th>Check</th><th>Details</th></tr>
+        <tr><td>Driver Verification</td><td>Check driving license validity and identity</td></tr>
+        <tr><td>Safety Compliance</td><td>Verify closed-toe safety footwear</td></tr>
+        <tr><td>Vehicle Seals</td><td>Inspect and verify container/door seals are intact</td></tr>
+        <tr><td>Door Inspection</td><td>Check vehicle doors for damage or tampering</td></tr>
+        <tr><td>System Logging</td><td>Log arrival in Yard Management System (YMS)</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Systems & Tools</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>System</th><th>Function</th></tr>
+        <tr><td><strong>Station Command Center</strong></td><td>Real-time shipment tracking and route management</td></tr>
+        <tr><td><strong>Eagle Eye</strong></td><td>Item-level visibility and shipment tracking</td></tr>
+        <tr><td><strong>Cortex</strong></td><td>DA GPS monitoring and delivery tracking</td></tr>
+        <tr><td><strong>YMS</strong></td><td>Yard Management System — truck arrival/departure logging</td></tr>
+        <tr><td><strong>PDA Machine</strong></td><td>Handheld scanning for buffer placement</td></tr>
+        <tr><td><strong>Stow Finger</strong></td><td>QR scanning device for cage stowing</td></tr>
+        <tr><td><strong>Dock Gun</strong></td><td>Palette-level scanning at dock</td></tr>
+        <tr><td><strong>Avery Gun</strong></td><td>RGU label printing and application</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Key Performance Indicators</summary>
+    <div class="det-content">
+      <table class="data-table">
+        <tr><th>KPI</th><th>Description</th><th>Impact</th></tr>
+        <tr><td><strong>FDDS</strong></td><td>First Day Delivery Success — % orders delivered on first attempt same day</td><td><span class="tag tag-high">Primary</span></td></tr>
+        <tr><td><strong>DPMO</strong></td><td>Defects Per Million Opportunities — quality metric tracking all defect types</td><td><span class="tag tag-high">Primary</span></td></tr>
+        <tr><td><strong>SPR</strong></td><td>Shipments Per Route — total shipments assigned per single DA route</td><td><span class="tag tag-med">Secondary</span></td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>Delivery Coverage (Example Station)</summary>
+    <div class="det-content">
+      <p style="font-size:12px; color:#aab;">Delivery stations serve multiple geographic zones. Example coverage areas:</p>
+      <div class="flow-line" style="margin-top:8px">
+        <span class="flow-item">Madinty</span>
+        <span class="flow-item">Shorouk</span>
+        <span class="flow-item">Rehab</span>
+        <span class="flow-item">Mokatam</span>
+        <span class="flow-item">Madint Nasr</span>
+      </div>
+      <p style="margin-top:8px; font-size:11px; color:#8899aa;">Zones may transition between stations as network capacity evolves.</p>
+    </div>
+  </details>
+</div>
+
+</body>
+</html>
